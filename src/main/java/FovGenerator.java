@@ -26,9 +26,9 @@ public class FovGenerator {
     public static void main(String[] args) throws IOException {
         String template = readFileInClasspath("footprint.xml", StandardCharsets.UTF_8);
 
-        try(Reader isCameras = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("cameras.csv"), StandardCharsets.UTF_8);
-            Reader isOptics = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("optics.csv"), StandardCharsets.UTF_8)) {
-            Iterable<CSVRecord> cameras = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(isCameras);
+        try(Reader camerasReader = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("cameras.csv"), StandardCharsets.UTF_8);
+            Reader opticsReader = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("optics.csv"), StandardCharsets.UTF_8)) {
+            Iterable<CSVRecord> cameras = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(camerasReader);
 
             for (CSVRecord camera : cameras) {
                 String cameraName = camera.get(0);
@@ -40,7 +40,7 @@ public class FovGenerator {
                 int nbPhotositesWidth = Integer.valueOf(nbPhotX);
                 int nbPhotositesHeight = Integer.valueOf(nbPhotY);
 
-                Iterable<CSVRecord> optics = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(isOptics);
+                Iterable<CSVRecord> optics = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(opticsReader);
 
                 for (CSVRecord optic : optics) {
                     String opticName = optic.get(0);
@@ -66,7 +66,7 @@ public class FovGenerator {
                     replacements.put("{HalfFieldHeightArcsec}", String.valueOf(halfFieldHeightArcsec));
 
                     String content = replace(template, replacements);
-                    writeVotFile(outputFilename + extension, content);
+                    writeVotFile(outputFilename + extension, content, StandardCharsets.UTF_8);
 
                     System.out.println("Ecriture du fichier '" + outputFilename + extension + "'");
 
@@ -156,12 +156,12 @@ public class FovGenerator {
      *
      * @param filename Output filename.
      * @param content Content of the file.
+     * @param encoding Charset encoding.
      * @throws FileNotFoundException
      */
-    private static void writeVotFile(String filename, String content) throws FileNotFoundException {
-        // TODO write in UTF8
-        try( PrintWriter out = new PrintWriter(filename) ) {
-            out.print(content);
+    private static void writeVotFile(String filename, String content, Charset encoding) throws IOException {
+        try(OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(filename), encoding)) {
+            writer.append(content);
         }
     }
 }
