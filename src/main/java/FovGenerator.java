@@ -1,4 +1,5 @@
 import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import java.io.*;
@@ -27,8 +28,7 @@ public class FovGenerator {
         String template = readFileInClasspath("footprint.xml", StandardCharsets.UTF_8);
 
         try(Reader camerasReader = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("cameras.csv"), StandardCharsets.UTF_8);
-            Reader opticsReader = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("optics.csv"), StandardCharsets.UTF_8)) {
-            Iterable<CSVRecord> cameras = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(camerasReader);
+            CSVParser cameras = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(camerasReader)) {
 
             for (CSVRecord camera : cameras) {
                 String cameraName = camera.get(0);
@@ -40,39 +40,38 @@ public class FovGenerator {
                 int nbPhotositesWidth = Integer.valueOf(nbPhotX);
                 int nbPhotositesHeight = Integer.valueOf(nbPhotY);
 
-                Iterable<CSVRecord> optics = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(opticsReader);
+                try(Reader opticsReader = new InputStreamReader(FovGenerator.class.getClassLoader().getResourceAsStream("optics.csv"), StandardCharsets.UTF_8);
+                    CSVParser optics = CSVFormat.EXCEL.withFirstRecordAsHeader().parse(opticsReader)) {
 
-                for (CSVRecord optic : optics) {
-                    String opticName = optic.get(0);
-                    String correctorName = optic.get(1);
-                    String focaleLength = optic.get(2);
+                    for (CSVRecord optic : optics) {
+                        String opticName = optic.get(0);
+                        String correctorName = optic.get(1);
+                        String focaleLength = optic.get(2);
 
-                    int focale = Integer.valueOf(focaleLength);
+                        int focale = Integer.valueOf(focaleLength);
 
-                    int fieldWidthArcsec = Math.round(photositeSize * nbPhotositesWidth * 206 / focale);
-                    int fieldHeightArcsec = Math.round(photositeSize * nbPhotositesHeight * 206 / focale);
+                        int fieldWidthArcsec = Math.round(photositeSize * nbPhotositesWidth * 206 / focale);
+                        int fieldHeightArcsec = Math.round(photositeSize * nbPhotositesHeight * 206 / focale);
 
-                    double halfFieldWidthArcsec = Math.rint(fieldWidthArcsec / 2);
-                    double halfFieldHeightArcsec = Math.rint(fieldHeightArcsec / 2);
+                        double halfFieldWidthArcsec = Math.rint(fieldWidthArcsec / 2);
+                        double halfFieldHeightArcsec = Math.rint(fieldHeightArcsec / 2);
 
-                    String outputFilename = composeFilename(cameraName, opticName, correctorName);
-                    String extension = ".vot";
+                        String outputFilename = composeFilename(cameraName, opticName, correctorName);
+                        String extension = ".vot";
 
-                    Map<String, String> replacements = new HashMap<>();
-                    replacements.put("{ID}", outputFilename);
-                    replacements.put("{TelescopeName}", opticName);
-                    replacements.put("{InstrumentName}", cameraName);
-                    replacements.put("{HalfFieldWidthArcsec}", String.valueOf(halfFieldWidthArcsec));
-                    replacements.put("{HalfFieldHeightArcsec}", String.valueOf(halfFieldHeightArcsec));
+                        Map<String, String> replacements = new HashMap<>();
+                        replacements.put("{ID}", outputFilename);
+                        replacements.put("{TelescopeName}", opticName);
+                        replacements.put("{InstrumentName}", cameraName);
+                        replacements.put("{HalfFieldWidthArcsec}", String.valueOf(halfFieldWidthArcsec));
+                        replacements.put("{HalfFieldHeightArcsec}", String.valueOf(halfFieldHeightArcsec));
 
-                    String content = replace(template, replacements);
-                    writeVotFile(outputFilename + extension, content, StandardCharsets.UTF_8);
+                        String content = replace(template, replacements);
+                        writeVotFile(outputFilename + extension, content, StandardCharsets.UTF_8);
 
-                    System.out.println("Ecriture du fichier '" + outputFilename + extension + "'");
-
-                    break;
+                        System.out.println("Ecriture du fichier '" + outputFilename + extension + "'");
+                    }
                 }
-                break;
             }
         }
     }
